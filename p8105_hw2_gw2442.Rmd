@@ -32,13 +32,13 @@ skimr::skim(transit_df)
 ```
 There are 468 stations that are ADA compliant.
 
-```{r}
+```{r****}
 distinct(transit_df, line, station_name, vending)
 
 ```
-There are 465 station entrances/exists without vending that allow entrance. ***
+What proportion of station entrances/exists without vending allow entrance?
 
-```{r}
+```{r****}
 transit_df = 
 pivot_longer(
     transit_df, 
@@ -53,7 +53,7 @@ view(transit_df)
 distinct(transit_df, station_name,line) %>%
     count(vending = "YES", entry = TRUE)
 ```
-
+How many distinct staionts serve the A train? Of the stations that serve the A train, how many are ADA compliant?
 
 ## Problem 2
 
@@ -107,10 +107,81 @@ The total weight of trash collected by Professor Trash Wheel is 135.5 tons.
 The total number of sports balls collected by Mr. Trash Wheel in 2020 was 856 sports balls. 
 
 
+## Problem 3 
+Cleaning data in `pols-month.csv`
+```{r}
+pols_df = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>%
+  janitor::clean_names() %>%
+  separate(mon, c('year', 'month', 'day'), sep = "-") %>%
+  mutate( 
+    month = recode(month,
+    "01" = "jan", "02" = "feb", "03" = "mar", "04" = "apr", "05" = "may", "06" = "jun", "07" = "jul", "08" = "aug", "09" = "sep", "10" = "oct", "11" = "nov", "12" = "dec"),
+    prez_dem = recode(prez_dem, "1" = "dem"),
+    prez_gop = recode(prez_gop, "1" = "gop")) %>%
+   pivot_longer(
+     cols = starts_with("prez"),
+     names_to = "temp",
+     values_to = "president") %>%
+  drop_na("president") %>%
+  select(-temp, -day)
 
+view(pols_df)
+```
 
+Cleaning data in `snp.csv`
+```{r}
+snp_df = read_csv("data/fivethirtyeight_datasets/snp.csv") %>%
+  janitor::clean_names() %>%
+  mutate(
+    date = as.Date(date, "%m/%d/%y"),
+    date = as.Date(ifelse(date > "2015-07-01", format(date, "19%y-%m-%d"), format(date)))) %>%
+  separate(date, c('year', 'month', 'day'), sep = "-") %>%
+  select(year, month, day, everything()) %>%
+  arrange(year, month) %>%
+  select(-day) %>%
+  mutate(
+    month = recode(month,
+    "01" = "jan", "02" = "feb", "03" = "mar", "04" = "apr", "05" = "may", "06" = "jun", "07" = "jul", "08" = "aug", "09" = "sep", "10" = "oct", "11" = "nov", "12" = "dec"))
 
+view(snp_df)
+```
 
+Tidying `unemployment.csv` 
+```{r}
+unemployment_df = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
+  janitor::clean_names() %>%
+  pivot_longer(
+    jan:dec,
+    names_to = "month",
+    values_to = "pct_unemployment") 
+
+unemployment_df$year <- as.character(unemployment_df$year)
+
+view(unemployment_df)
+```
+
+Joining `snp_df` into `pols_df`, and merging`unemployment_df` with the result
+```{r}
+pols_snp_combined =
+  left_join(pols_df, snp_df, by = c("year", "month"))
+view(pols_snp_combined)
+
+problem3_tidy = 
+  left_join(pols_snp_combined, unemployment_df, by = c("year", "month"))
+view(problem3_tidy)
+
+skimr::skim(problem3_tidy)
+```
+
+After cleaning the `pols-month.csv`, the `pols_df` dataset contained 817 rows and 9 columns. The variables within the dataset included year, month, president, gov_gop, sen_gop, rep_gop, gov_dem, sen_dem, and rep_dem. The variable year ranged from 1947-2015.
+
+After cleaning the `snp.csv`, the `snp_df` dataset 
+contained 787 rows and 3 columns. The variables within the dataset included year, month, and close. The variable year ranged from 
+1950-2015.
+
+After cleaning the `unemployment.csv`, the `unemployment_df` dataset contained 816 rows and 3 columns. The variables within the dataset included year, month, and pct_unemployment. The variable year ranged from 1948-1950. 
+
+After joining the three datasets into `problem3_tidy`, the resulting datset contained 817 rows and 11 columns. The variables within the dataset included year, month, president, gov_gop, sen_gop, rep_gop, gov_dem, sen_dem, rep_dem, close, and pct_unemployment. The variable year ranged from 1947-2015. 
 
 
 
