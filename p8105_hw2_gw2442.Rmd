@@ -1,0 +1,119 @@
+---
+title: "p8105_hw2_gw2442"
+output: github_document
+date: "2022-09-28"
+---
+```{r}
+library(tidyverse)
+```
+
+## Problem 1 
+
+```{r}
+transit_df = read_csv('data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv') %>%
+  janitor::clean_names() %>%
+  select(line:entry, vending, ada) %>%
+  mutate(
+    entry = ifelse(entry == "YES", TRUE, FALSE))
+    
+skimr::skim(transit_df)
+```
+
+The dataset contains variables line, station_name, route1 - route11, entrance_type, vending, entry, ada, station_latitude, and station_longitude. Following the import of the csv data, a new dataset was created called `transit_df` where the column names were cleaned using `janitor::clean_names()`. The variables of interest were selected from the original csv file for the new dataset and the variable `entry` was converted to a logical variable using `ifelse`. The dimensions of the resulting dataset are 1868 rows and 19 columns. The data is not tidy, as the columns route1 - route11 are values rather than variable names. 
+
+
+```{r}
+distinct(transit_df, line, station_name)
+```
+There are 465 distinct stations.
+
+```{r}
+skimr::skim(transit_df)
+```
+There are 468 stations that are ADA compliant.
+
+```{r}
+distinct(transit_df, line, station_name, vending)
+
+```
+There are 465 station entrances/exists without vending that allow entrance. ***
+
+```{r}
+transit_df = 
+pivot_longer(
+    transit_df, 
+    route1:route11,
+    values_transform = as.character,
+    names_to = "route_number",
+    names_prefix = "route",
+    values_to = "route_name",
+    ) 
+view(transit_df)
+
+distinct(transit_df, station_name,line) %>%
+    count(vending = "YES", entry = TRUE)
+```
+
+
+## Problem 2
+
+Reading and cleaning Mr. Trash Wheel sheet:
+```{r}
+m_trash_wheel = readxl::read_excel(
+  "data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", 
+  sheet = "Mr. Trash Wheel",
+  range = "A2:N533") %>%
+  janitor::clean_names() %>%
+  drop_na(dumpster) %>%
+  mutate(
+    sports_balls = round(sports_balls),
+    trash_wheel = "mr") %>%
+  select(trash_wheel, everything())
+```
+
+Reading and cleaning Professor Trash Wheel sheet:
+```{r}
+p_trash_wheel = readxl::read_excel(
+  "data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+  sheet = "Professor Trash Wheel",
+  range = "A2:N117") %>%
+  janitor::clean_names() %>%
+  drop_na(dumpster) %>%
+  mutate(
+    sports_balls = round(sports_balls),
+    trash_wheel = "professor") %>%
+  select(trash_wheel, everything())
+```
+
+Combining datasets `m_trash_wheel` and `p_trash_wheel`
+```{r}
+trash_wheel_tidy = bind_rows(m_trash_wheel, p_trash_wheel)
+
+skimr::skim(trash_wheel_tidy)
+```
+The dataset `trash_wheel_tidy` has 524 observations (453 from dataset `m_trash_tidy` and 71 from `p_trash_tidy`). There are 15 variables, including the variable `trash_wheel` that was added to keep track of which Trash Wheel (Mr. or Professor) is which. Some of the key variables in this dataset include `dumpster`, `weight_tons`, `volume_cubic_yards`, and `sports_balls`. 
+
+```{r}
+aggregate (x = trash_wheel_tidy$weight_tons,
+           by = list(trash_wheel_tidy$trash_wheel),
+           FUN = sum)
+
+aggregate (x = trash_wheel_tidy$sports_balls,
+           by = list(trash_wheel_tidy$trash_wheel, trash_wheel_tidy$year),
+           FUN = sum)
+```
+
+The total weight of trash collected by Professor Trash Wheel is 135.5 tons.
+The total number of sports balls collected by Mr. Trash Wheel in 2020 was 856 sports balls. 
+
+
+
+
+
+
+
+
+
+
+
+
