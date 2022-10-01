@@ -1,63 +1,87 @@
 ---
 title: "p8105_hw2_gw2442"
 output: github_document
-date: "2022-09-28"
+author: "Gwyneth Wei"
 ---
 ```{r}
 library(tidyverse)
+library(readxl)
 ```
 
 ## Problem 1 
 
+Reading and cleaning data in `NYC_Transit_Subway_Entrance_And_Exit_Data.csv`:
+
 ```{r}
-transit_df = read_csv('data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv') %>%
+transit_df = read_csv(
+  'data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv',
+  col_types = cols(Route8 = "c", Route9 = "c", Route10 = "c", Route11 = "c")) %>%
   janitor::clean_names() %>%
-  select(line:entry, vending, ada) %>%
+  select(line:vending, ada) %>%
   mutate(
     entry = ifelse(entry == "YES", TRUE, FALSE))
-    
+
 skimr::skim(transit_df)
 ```
 
-The dataset contains variables line, station_name, route1 - route11, entrance_type, vending, entry, ada, station_latitude, and station_longitude. Following the import of the csv data, a new dataset was created called `transit_df` where the column names were cleaned using `janitor::clean_names()`. The variables of interest were selected from the original csv file for the new dataset and the variable `entry` was converted to a logical variable using `ifelse`. The dimensions of the resulting dataset are 1868 rows and 19 columns. The data is not tidy, as the columns route1 - route11 are values rather than variable names. 
+The dataset `transit_df` contains variables line, station_name, route1 - route11, entrance_type, vending, entry, exit_only, ada, station_latitude, and station_longitude. 
 
+Following the import of the csv data, a new dataset was created called `transit_df` where the column names were cleaned using `janitor::clean_names()`. The variables route8 - route11 were converted to character variables. The variables of interest were selected from the original csv file for the new dataset and the variable `entry` was converted to a logical variable using `ifelse`. The dimensions of the resulting dataset are 1868 rows and 20 columns. The data is not tidy, as the columns route1 - route11 are values rather than variable names. 
 
+*How many distinct stations are there?*
 ```{r}
-distinct(transit_df, line, station_name)
+select(transit_df, station_name, line) %>%
+distinct
 ```
 There are 465 distinct stations.
 
+*How many stations are ADA compliant?*
 ```{r}
-skimr::skim(transit_df)
+transit_df %>%
+    filter(ada == TRUE) %>%
+    select(station_name, line) %>%
+    distinct
 ```
-There are 468 stations that are ADA compliant.
+There are 84 stations that are ADA compliant.
 
-```{r****}
-distinct(transit_df, line, station_name, vending)
-
+*What proportion of station entrances/exits without vending allow entrance?*
+```{r}
+transit_df %>%
+    filter(vending == "NO") %>%
+    pull(entry) %>%
+    mean
 ```
-What proportion of station entrances/exists without vending allow entrance?
+37.70% of all station entrances/exits without vending allow entrance.
 
-```{r****}
-transit_df = 
-pivot_longer(
-    transit_df, 
+*How many distinct stations serve the A train? Of the stations that serve the A train, how many are ADA compliant?*
+```{r}
+transit_df %>%
+  pivot_longer(
     route1:route11,
-    values_transform = as.character,
     names_to = "route_number",
-    names_prefix = "route",
-    values_to = "route_name",
-    ) 
-view(transit_df)
+    values_to = "route_name") %>%
+  filter(route_name == "A") %>%
+  select (station_name, line) %>%
+  distinct
 
-distinct(transit_df, station_name,line) %>%
-    count(vending = "YES", entry = TRUE)
+transit_df %>%
+  pivot_longer(
+    route1:route11,
+    names_to = "route_number",
+    values_to = "route_name") %>%
+  filter(route_name == "A", ada == TRUE) %>%
+  select(station_name, line) %>%
+  distinct
 ```
-How many distinct staionts serve the A train? Of the stations that serve the A train, how many are ADA compliant?
+
+There are 60 distinct stations that serve the A train. Of the stations that serve the A train, there are 17 that are ADA compliant. 
+
 
 ## Problem 2
 
 Reading and cleaning Mr. Trash Wheel sheet:
+
+* Variable `trash_wheel` was added for combining the datasets later on
 ```{r}
 m_trash_wheel = readxl::read_excel(
   "data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", 
@@ -72,6 +96,8 @@ m_trash_wheel = readxl::read_excel(
 ```
 
 Reading and cleaning Professor Trash Wheel sheet:
+
+* Variable `trash_wheel` was added for combining the datasets later on
 ```{r}
 p_trash_wheel = readxl::read_excel(
   "data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
@@ -93,6 +119,7 @@ skimr::skim(trash_wheel_tidy)
 ```
 The dataset `trash_wheel_tidy` has 524 observations (453 from dataset `m_trash_tidy` and 71 from `p_trash_tidy`). There are 15 variables, including the variable `trash_wheel` that was added to keep track of which Trash Wheel (Mr. or Professor) is which. Some of the key variables in this dataset include `dumpster`, `weight_tons`, `volume_cubic_yards`, and `sports_balls`. 
 
+*What was the total weight of trash collected by Professor Trash Wheel? What was the total number of sports balls collected by Mr. Trash Wheel in 2020?*
 ```{r}
 aggregate (x = trash_wheel_tidy$weight_tons,
            by = list(trash_wheel_tidy$trash_wheel),
@@ -105,6 +132,7 @@ aggregate (x = trash_wheel_tidy$sports_balls,
 
 The total weight of trash collected by Professor Trash Wheel is 135.5 tons.
 The total number of sports balls collected by Mr. Trash Wheel in 2020 was 856 sports balls. 
+
 
 
 ## Problem 3 
@@ -124,8 +152,6 @@ pols_df = read_csv("data/fivethirtyeight_datasets/pols-month.csv") %>%
      values_to = "president") %>%
   drop_na("president") %>%
   select(-temp, -day)
-
-view(pols_df)
 ```
 
 Cleaning data in `snp.csv`
@@ -142,11 +168,11 @@ snp_df = read_csv("data/fivethirtyeight_datasets/snp.csv") %>%
   mutate(
     month = recode(month,
     "01" = "jan", "02" = "feb", "03" = "mar", "04" = "apr", "05" = "may", "06" = "jun", "07" = "jul", "08" = "aug", "09" = "sep", "10" = "oct", "11" = "nov", "12" = "dec"))
-
-view(snp_df)
 ```
 
-Tidying `unemployment.csv` 
+Cleaning data in `unemployment.csv` 
+
+* Variable `year` was converted to a character variable for combining datasets later on
 ```{r}
 unemployment_df = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
   janitor::clean_names() %>%
@@ -156,8 +182,6 @@ unemployment_df = read_csv("data/fivethirtyeight_datasets/unemployment.csv") %>%
     values_to = "pct_unemployment") 
 
 unemployment_df$year <- as.character(unemployment_df$year)
-
-view(unemployment_df)
 ```
 
 Joining `snp_df` into `pols_df`, and merging`unemployment_df` with the result
