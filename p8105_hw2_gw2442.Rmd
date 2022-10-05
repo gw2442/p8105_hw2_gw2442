@@ -84,11 +84,10 @@ Reading and cleaning Mr. Trash Wheel sheet:
 * Variable `trash_wheel` was added for combining the datasets later on
 ```{r}
 m_trash_wheel = readxl::read_excel(
-  "data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", 
+  "data/Trash Wheel Collection Data.xlsx", 
   sheet = "Mr. Trash Wheel",
-  range = "A2:N533") %>%
+  range = "A2:N549") %>%
   janitor::clean_names() %>%
-  drop_na(dumpster) %>%
   mutate(
     sports_balls = round(sports_balls),
     trash_wheel = "mr") %>%
@@ -98,15 +97,15 @@ m_trash_wheel = readxl::read_excel(
 Reading and cleaning Professor Trash Wheel sheet:
 
 * Variable `trash_wheel` was added for combining the datasets later on
+* Variable `year` was converted into a character variable in order to combine the datasets later on 
 ```{r}
 p_trash_wheel = readxl::read_excel(
-  "data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx",
+  "data/Trash Wheel Collection Data.xlsx",
   sheet = "Professor Trash Wheel",
-  range = "A2:N117") %>%
+  range = "A2:M96") %>%
   janitor::clean_names() %>%
-  drop_na(dumpster) %>%
   mutate(
-    sports_balls = round(sports_balls),
+    year = as.character(year),
     trash_wheel = "professor") %>%
   select(trash_wheel, everything())
 ```
@@ -117,7 +116,7 @@ trash_wheel_tidy = bind_rows(m_trash_wheel, p_trash_wheel)
 
 skimr::skim(trash_wheel_tidy)
 ```
-The dataset `trash_wheel_tidy` has 524 observations (453 from dataset `m_trash_tidy` and 71 from `p_trash_tidy`). There are 15 variables, including the variable `trash_wheel` that was added to keep track of which Trash Wheel (Mr. or Professor) is which. Some of the key variables in this dataset include `dumpster`, `weight_tons`, `volume_cubic_yards`, and `sports_balls`. 
+The dataset `trash_wheel_tidy` has 641 observations (547 from dataset `m_trash_wheel` and 94 from `p_trash_wheel`). There are 15 variables, including the variable `trash_wheel` that was added to keep track of which Trash Wheel is which (Mr. or Professor). Some of the key variables in this dataset include `dumpster`, `weight_tons`, `volume_cubic_yards`, and `sports_balls`. 
 
 *What was the total weight of trash collected by Professor Trash Wheel? What was the total number of sports balls collected by Mr. Trash Wheel in 2020?*
 ```{r}
@@ -130,7 +129,7 @@ aggregate (x = trash_wheel_tidy$sports_balls,
            FUN = sum)
 ```
 
-The total weight of trash collected by Professor Trash Wheel is 135.5 tons.
+The total weight of trash collected by Professor Trash Wheel is 190.12  tons.
 The total number of sports balls collected by Mr. Trash Wheel in 2020 was 856 sports balls. 
 
 
